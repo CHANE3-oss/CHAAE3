@@ -1,0 +1,164 @@
+#!/bin/bash
+# Installer for ThePAK
+
+source etc/banner
+# Banner Add
+echo -e "执行项目支持: ${LIGHTGREEN}E3${NOCOLOR}"
+echo "-----------------------"
+# Setup directory for Requirements
+quickbms_dir=$PREFIX/share/quickbms
+sd=/storage/emulated/0/download
+tx=$HOME/AN
+
+function redirect {
+ echo -e "${LIGHTGREEN}启动 CHAAE3${NOCOLOR}"
+ echo -ne '#####                     (20%)\r'
+ sleep 1
+ echo -ne '#############             (50%)\r'
+ sleep 1
+ echo -ne '#######################   (100%)\r'
+ echo -ne '\n'
+ chmod +x quickbms etc/tools.bms AN
+bash AN
+}
+
+function quickbms_check {
+  echo -e "${YELLOW}检查所需程序..${NOCOLOR}"
+  FILE=$quickbms_dir/quickbms
+  if [ -f "$FILE" ]; then
+      echo -e "${LIGHTGREEN}程序已安装.${NOCOLOR}"
+      chmod +x quickbms etc/tools.bms AN
+      redirect
+  else 
+      echo -e "${RED}未找到程序.${NOCOLOR}"
+      quickbms_install
+      chmod +x quickbms etc/tools.bms AN
+  fi
+}
+function nextinstaller {
+cd $tx
+unzip -qq quickbms_linux.zip
+sleep 1
+rm -rf $PREFIX/share/quickbms
+sleep 1
+mkdir $PREFIX/share/quickbms
+sleep 1
+chmod +x quickbms_4gb_files
+sleep 1
+yes | cp -rf quickbms_4gb_files $PREFIX/share/quickbms
+sleep 1
+chmod +x quickbms
+sleep 1
+yes | cp -rf quickbms $PREFIX/share/quickbms
+sleep 1
+chmod +x etc/tools.bms AN
+sleep 1
+}
+
+function testbmsm {
+echo "checking file .Zip"
+FILE=$sd/quickbms_linux.zip
+  if [ -f "$FILE" ]; then
+      echo " file founded"
+      cp -rf $sd/quickbms_linux.zip $tx
+      nextinstaller
+  else 
+      clear
+      echo -e "${RED}THE FILE IS NOT FOUND${NOCOLOR}"
+      quickbms_manual
+  fi
+}
+
+function testbmsauto {
+echo "检查下载的程序"
+sleep 1
+FILE=quickbms_linux.zip
+  if [ -f "$FILE" ]; then
+      echo " 文件成立"
+      nextinstaller
+  else 
+      clear
+      echo -e "${RED}未找到文件${NOCOLOR}"
+      quickbms_install
+  fi
+}
+
+function quickbms_manual {
+  clear
+  echo ""
+  echo "http://aluigi.altervista.org/papers/quickbms_linux.zip"
+  echo -e "${RED} 首先从上面的链接下载文件 ${NOCOLOR}"
+  echo -e "${GREEN}下载后将文件粘贴到下载文件夹中 ${NOCOLOR}"
+cd $sd
+prompt="请选择一个文件 :"
+options=( $(find *.zip) )
+
+PS3="$prompt "
+select bms in "${options[@]}" "退出" ; do 
+    if (( REPLY == 1 + ${#options[@]} )) ; then
+        exit
+
+    elif (( REPLY > 0 && REPLY <= ${#options[@]} )) ; then
+        echo  "你选择了 $bms，它是文件 Quick 的文件"
+         testbmsm
+    else
+        echo "选项无效。请尝试其他选项"
+    fi
+done
+cd $tx
+}
+
+function quickbms_auto {
+echo "使用自动安装方法"
+echo "请稍等"
+echo "这个过程取决于你的网络服务"
+echo " 如果时间太长请按 CTRL + C"
+sleep 2
+echo "开始"
+cd $tx
+if [[ ! -f "quickbms_linux.zip" ]]; then
+wget http://aluigi.altervista.org/papers/quickbms_linux.zip
+echo " 检查..."
+testbmsauto
+else
+testbmsauto
+fi
+}
+
+function quickbms_install {
+echo -e "选择程序安装程序"
+echo "选择自动时，请确保您有良好的网络连接"
+echo "因为这个过程将花费更长的时间"
+PS3='请输入您的选择: '
+options=("自动" "手动")
+select pategk in "${options[@]}"
+do
+    case $pategk in
+        "自动o")
+            quickbms_auto
+            ;;
+        "手动")
+            quickbms_manual
+            ;;
+        *) echo "无效选项 $REPLY";;
+    esac
+done 
+}
+
+#Checking Required Pakcages
+echo -e "${YELLOW}检查所需包${NOCOLOR}"
+
+packages=("wget" "unzip" "curl" "x11-repo" "qemu-system-i386" "qemu-user-i386")
+
+for pkg in ${packages[@]}; do
+
+    is_pkg_installed=$(dpkg-query -W --showformat='${Status}\n' ${pkg} | grep "install ok installed")
+
+    if [ "${is_pkg_installed}" == "install ok installed" ]; then
+        echo -e ${GREEN}${pkg}${NOCOLOR} is installed.
+    else [ "" = "${is_pkg_installed}" ];
+     echo -e "${RED}No ${pkg}. Setting up ${pkg}.${NOCOLOR}" 
+    pkg install ${pkg} -y
+    fi
+done
+quickbms_check
